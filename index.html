@@ -26,10 +26,13 @@
           <p class="subtitle">一次性提交他人的 5Why 链条，AI 校验逻辑是否存在漏洞</p>
         </div>
         <div class="header-actions">
+          <button id="btn-template" class="btn btn-secondary" title="下载规定格式的填表模板">下载模板</button>
+          <button id="btn-upload" class="btn btn-secondary" title="上传规定格式的表格，自动识别并填充">上传表格</button>
           <button id="btn-settings" class="btn btn-secondary" title="API 设置">设置</button>
           <button id="btn-export" class="btn btn-secondary" title="导出 Markdown 报告">导出报告</button>
           <button id="btn-clear" class="btn btn-secondary" title="清空当前记录">清空记录</button>
         </div>
+        <input type="file" id="file-input" class="hidden" accept=".xlsx,.xls,.csv">
       </div>
     </header>
 
@@ -97,6 +100,7 @@
     </div>
   </div>
 
+  <script src="vendor/xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

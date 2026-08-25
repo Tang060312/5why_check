@@ -373,6 +373,18 @@ mark {
   font-size: 13px;
 }
 
+.error-panel.success {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+
+.error-panel.warn {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
 /* ---------- buttons ---------- */
 .btn {
   border: 1px solid var(--border);

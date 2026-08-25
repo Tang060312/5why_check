@@ -530,7 +530,7 @@
   async function onSubmit() {
     if (busy || !current) return;
     const errEl = $('#form-error');
-    errEl.classList.add('hidden');
+    errEl.className = 'error-panel hidden';
 
     const data = collectSubmission();
     if (data.error) {
@@ -621,6 +621,127 @@
     setInputEnabled(true);
   }
 
+  /* ---------- 表格模板 / 上传解析 ---------- */
+  function showFormMsg(text, cls) {
+    const el = $('#form-error');
+    el.textContent = text;
+    el.className = 'error-panel' + (cls ? ' ' + cls : '');
+  }
+
+  function downloadTemplate() {
+    if (typeof XLSX === 'undefined') {
+      showFormMsg('表格组件未加载，请刷新页面后重试。');
+      return;
+    }
+    const aoa = [
+      ['字段', '问题（为什么）', '分析 / 解答'],
+      ['问题背景', '示例：今天 A 产线良品率下降 5%（可选，建议填写）', ''],
+      ['第1层', '为什么良品率下降？', '因为操作员操作不规范'],
+      ['第2层', '为什么操作不规范？', '因为没有标准化作业指导书'],
+      ['第3层', '（留空即可忽略）', ''],
+      ['第4层', '', ''],
+      ['第5层', '', ''],
+      ['第6层', '', ''],
+      ['第7层', '', ''],
+      ['第8层', '', ''],
+      ['第9层', '', ''],
+      ['第10层', '', ''],
+      ['问题总结', '示例：根本原因是缺少标准化作业指导书（必填）', ''],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{ wch: 12 }, { wch: 40 }, { wch: 40 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '5Why审核');
+    XLSX.writeFile(wb, '5why-审核模板.xlsx');
+  }
+
+  /* 识别规则：第一列为字段标签；含"背景"→问题背景，含"总结"→问题总结，
+     匹配"第N层"（或纯数字）→ 该层问题(第2列)/分析(第3列)；其余行忽略 */
+  function parseRows(rows) {
+    const out = { background: '', layers: [], summary: '' };
+    rows.forEach((row) => {
+      if (!Array.isArray(row)) return;
+      const cells = row.map((c) => String(c == null ? '' : c).trim());
+      const label = cells.find((c) => c !== '') || '';
+      if (!label) return;
+      const rest = cells.slice(cells.indexOf(label) + 1).filter(Boolean);
+      const text = rest.join(' ');
+      if (/背景/.test(label)) {
+        if (text) out.background = text;
+        return;
+      }
+      if (/总结/.test(label)) {
+        if (text) out.summary = text;
+        return;
+      }
+      const m = label.match(/^\s*第?\s*(\d+)\s*层?\s*$/);
+      if (m) {
+        const n = parseInt(m[1], 10);
+        if (n < 1 || n > MAX_LAYERS) return;
+        const q = rest[0] || '';
+        const a = rest[1] || '';
+        if (q || a) out.layers.push({ n, q, a });
+      }
+    });
+    out.layers.sort((x, y) => x.n - y.n);
+    return out;
+  }
+
+  function fillForm(parsed) {
+    chainEl.innerHTML = '';
+    const count = Math.max(1, parsed.layers.length);
+    for (let i = 0; i < count; i++) {
+      chainEl.appendChild(buildLayerRow(i === 0 ? 1 : 2));
+    }
+    updateLayerState();
+    const layers = getLayers();
+    parsed.layers.forEach((l, i) => {
+      if (i >= layers.length) return;
+      layers[i].q.value = l.q;
+      layers[i].a.value = l.a;
+      autoResize(layers[i].q);
+      autoResize(layers[i].a);
+    });
+    bgInput.value = parsed.background;
+    autoResize(bgInput);
+    summaryEl.value = parsed.summary;
+    autoResize(summaryEl);
+  }
+
+  async function onUpload(file) {
+    if (typeof XLSX === 'undefined') {
+      showFormMsg('表格组件未加载，请刷新页面后重试。');
+      return;
+    }
+    try {
+      let data;
+      if (/\.csv$/i.test(file.name)) {
+        const buf = await file.arrayBuffer();
+        let str = new TextDecoder('utf-8').decode(buf);
+        if (str.includes('\uFFFD')) str = new TextDecoder('gbk').decode(buf);
+        data = XLSX.read(str, { type: 'string' });
+      } else {
+        data = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+      }
+      const ws = data.Sheets[data.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      const parsed = parseRows(rows);
+      if (!parsed.layers.length) {
+        showFormMsg('未识别到有效的「第 N 层」行，请使用「下载模板」的格式填写。');
+        return;
+      }
+      if (!parsed.summary) {
+        showFormMsg('已识别 ' + parsed.layers.length + ' 层（背景' + (parsed.background ? '有' : '无') + '），但未找到「问题总结」，提交前请补充。', 'warn');
+      } else {
+        showFormMsg('识别成功：背景' + (parsed.background ? '有' : '无') + '，' + parsed.layers.length + ' 层，总结有。请确认后提交审核。', 'success');
+      }
+      if (current && current.messages.some((m) => m.type === 'submission')) newSession();
+      fillForm(parsed);
+    } catch (e) {
+      showFormMsg('表格解析失败：' + (e.message || '未知错误') + '，请检查文件是否损坏。');
+    }
+  }
+
   /* ---------- 导出 Markdown 报告 ---------- */
   function exportReport() {
     if (!current || !current.messages.length) return;
@@ -660,6 +781,13 @@
     getLayers()[count].q.focus();
   });
   $('#btn-export').addEventListener('click', exportReport);
+  $('#btn-template').addEventListener('click', downloadTemplate);
+  $('#btn-upload').addEventListener('click', () => $('#file-input').click());
+  $('#file-input').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) onUpload(f);
+    e.target.value = '';
+  });
   $('#btn-clear').addEventListener('click', () => {
     if (!current) return;
     current.messages = [{ role: 'assistant', content: GREETING }];
