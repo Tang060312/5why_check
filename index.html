@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5Why 审核工具 - AI 逻辑链校验</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <div class="brand">5Why 分析审核
+        <span class="ai-badge">AI 增强</span>
+      </div>
+      <button id="btn-new-chat" class="btn btn-primary new-chat-btn">＋ 新建审核</button>
+    </div>
+    <div class="sidebar-title">审核记录</div>
+    <ul id="session-list" class="session-list"></ul>
+  </aside>
+
+  <div class="main">
+    <header class="app-header">
+      <div class="header-inner">
+        <div>
+          <h1 id="session-title">新审核</h1>
+          <p class="subtitle">一次性提交他人的 5Why 链条，AI 校验逻辑是否存在漏洞</p>
+        </div>
+        <div class="header-actions">
+          <button id="btn-settings" class="btn btn-secondary" title="API 设置">设置</button>
+          <button id="btn-export" class="btn btn-secondary" title="导出 Markdown 报告">导出报告</button>
+          <button id="btn-clear" class="btn btn-secondary" title="清空当前记录">清空记录</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="chat" class="chat"></main>
+
+    <footer class="input-bar-wrap">
+      <div id="input-bar" class="input-bar review-bar">
+        <div class="review-fields">
+          <div class="qa-field">
+            <div class="qa-label">问题背景 <em>必填</em></div>
+            <textarea id="in-background" rows="2" placeholder="他人的分析针对什么问题：具体异常、发生时间、发生地点、涉及对象、影响程度、正常标准与实际差异。Enter 提交，Shift+Enter 换行"></textarea>
+          </div>
+
+          <div id="layer-1" class="layer-row">
+            <div class="layer-tag">第 1 层</div>
+            <div class="qa-field">
+              <div class="qa-label">为什么？ <em>必填</em></div>
+              <textarea id="in-q1" rows="2" placeholder="第一层提出的为什么问题"></textarea>
+            </div>
+            <div class="qa-field">
+              <div class="qa-label">分析 / 解答 <em>必填</em></div>
+              <textarea id="in-a1" rows="2" placeholder="对这一层问题的解答、原因分析"></textarea>
+            </div>
+          </div>
+
+          <div id="layer-2" class="layer-row">
+            <div class="layer-tag">第 2 层</div>
+            <div class="qa-field">
+              <div class="qa-label">为什么？ <em>可选</em></div>
+              <textarea id="in-q2" rows="2" placeholder="基于上一层分析继续追问"></textarea>
+            </div>
+            <div class="qa-field">
+              <div class="qa-label">分析 / 解答 <em>可选</em></div>
+              <textarea id="in-a2" rows="2" placeholder="对这一层问题的解答"></textarea>
+            </div>
+          </div>
+
+          <div id="layer-3" class="layer-row">
+            <div class="layer-tag">第 3 层</div>
+            <div class="qa-field">
+              <div class="qa-label">为什么？ <em>可选</em></div>
+              <textarea id="in-q3" rows="2" placeholder="基于上一层分析继续追问"></textarea>
+            </div>
+            <div class="qa-field">
+              <div class="qa-label">分析 / 解答 <em>可选</em></div>
+              <textarea id="in-a3" rows="2" placeholder="对这一层问题的解答"></textarea>
+            </div>
+          </div>
+
+          <div id="layer-4" class="layer-row">
+            <div class="layer-tag">第 4 层</div>
+            <div class="qa-field">
+              <div class="qa-label">为什么？ <em>可选</em></div>
+              <textarea id="in-q4" rows="2" placeholder="基于上一层分析继续追问"></textarea>
+            </div>
+            <div class="qa-field">
+              <div class="qa-label">分析 / 解答 <em>可选</em></div>
+              <textarea id="in-a4" rows="2" placeholder="对这一层问题的解答"></textarea>
+            </div>
+          </div>
+
+          <div id="layer-5" class="layer-row">
+            <div class="layer-tag">第 5 层</div>
+            <div class="qa-field">
+              <div class="qa-label">为什么？ <em>可选</em></div>
+              <textarea id="in-q5" rows="2" placeholder="基于上一层分析继续追问"></textarea>
+            </div>
+            <div class="qa-field">
+              <div class="qa-label">分析 / 解答 <em>可选</em></div>
+              <textarea id="in-a5" rows="2" placeholder="对这一层问题的解答"></textarea>
+            </div>
+          </div>
+
+          <div id="form-error" class="error-panel hidden"></div>
+        </div>
+
+        <div class="review-actions">
+          <button id="btn-send" class="btn btn-primary send-btn">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            提交审核
+          </button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <div id="confirm-modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-text" id="modal-text">确定要删除这条记录吗？</div>
+      <div class="modal-actions">
+        <button id="btn-confirm-no" class="btn">取消</button>
+        <button id="btn-confirm-yes" class="btn btn-danger">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-box settings-box">
+      <div class="modal-text">AI 接口设置</div>
+      <div class="settings-hint" id="settings-hint"></div>
+      <label class="settings-field">接口地址
+        <input id="set-endpoint" type="text" placeholder="https://api.deepseek.com/chat/completions">
+      </label>
+      <label class="settings-field">API Key
+        <input id="set-key" type="password" placeholder="sk-...">
+      </label>
+      <label class="settings-field">模型名称
+        <input id="set-model" type="text" placeholder="deepseek-v4-flash">
+      </label>
+      <div class="modal-actions">
+        <button id="btn-settings-cancel" class="btn">取消</button>
+        <button id="btn-settings-save" class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "5why-check-ai",
+  "version": "1.0.0",
+  "description": "5Why 分析审核工具（AI 逻辑链校验）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
