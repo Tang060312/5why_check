@@ -8,7 +8,7 @@
 
   const SESSIONS_KEY = '5why_check_sessions';
   const CONFIG_KEY = '5why_check_ai_config';
-  const GREETING = '你好，我是 5Why 分析审核助手。\n\n请在下方表单中一次性粘贴或填写他人的 5Why 分析：\n1. 问题背景（他人在分析什么问题）；\n2. 第 1 层起逐层填写「为什么」与对应的「分析 / 解答」（最多 5 层，后几层按需填写，没那么多层可以留空）。\n\n提交后我会逐层审核整条逻辑链：每一层的解答是否回答了本层问题、下一层是否接着上一层追问、是否有猜测当事实、是否把责任归于个人、是否挖到了可改善的系统层面根因，并给出结论、漏洞清单与修改建议。';
+  const GREETING = '你好，我是 5Why 分析审核助手。\n\n请在表单中填写他人的 5Why 分析（第 1 层必填，最多 5 层），提交后我将逐层审核逻辑链，指出漏洞并给出修改建议。';
   const FALLBACK_PROMPT = '你是一位5Why分析审核专家，请审核用户提交的5Why分析链条是否存在逻辑漏洞，并给出修改建议。';
 
   /* 本地模式：通过本机 server.js 代理调用（读取 server.js 的 AI_CONFIG 与 promt.txt）
@@ -128,7 +128,8 @@
     if (current.title === '新审核') {
       const first = current.messages.find((m) => m.type === 'submission');
       if (first) {
-        current.title = first.background.replace(/\s+/g, ' ').slice(0, 20);
+        const titleSrc = first.background || (first.chain[0] && first.chain[0].q) || '';
+        current.title = titleSrc.replace(/\s+/g, ' ').slice(0, 20);
         $('#session-title').textContent = current.title;
       }
     }
@@ -187,17 +188,19 @@
     const card = document.createElement('div');
     card.className = 'submission';
 
-    const bg = document.createElement('div');
-    bg.className = 'sub-bg';
-    const bgLabel = document.createElement('div');
-    bgLabel.className = 'sub-label';
-    bgLabel.textContent = '问题背景';
-    const bgText = document.createElement('div');
-    bgText.className = 'sub-text';
-    bgText.textContent = m.background;
-    bg.appendChild(bgLabel);
-    bg.appendChild(bgText);
-    card.appendChild(bg);
+    if (m.background) {
+      const bg = document.createElement('div');
+      bg.className = 'sub-bg';
+      const bgLabel = document.createElement('div');
+      bgLabel.className = 'sub-label';
+      bgLabel.textContent = '问题背景';
+      const bgText = document.createElement('div');
+      bgText.className = 'sub-text';
+      bgText.textContent = m.background;
+      bg.appendChild(bgLabel);
+      bg.appendChild(bgText);
+      card.appendChild(bg);
+    }
 
     const chain = document.createElement('div');
     chain.className = 'sub-chain';
@@ -381,9 +384,6 @@
   /* ---------- 表单收集与校验 ---------- */
   function collectSubmission() {
     const background = bgInput.value.trim();
-    if (!background) {
-      return { error: '请先填写「问题背景」。' };
-    }
     const chain = [];
     for (let i = 0; i < layerIds.length; i++) {
       const q = layerIds[i].q.value.trim();
@@ -402,7 +402,7 @@
   }
 
   function submissionToText(background, chain) {
-    let text = `【问题背景】\n${background}\n\n`;
+    let text = background ? `【问题背景】\n${background}\n\n` : '';
     chain.forEach((step, i) => {
       text += `【第 ${i + 1} 层】\n问题：${step.q}\n分析：${step.a}\n\n`;
     });
@@ -522,7 +522,7 @@
   $('#btn-settings-cancel').addEventListener('click', () => $('#settings-modal').classList.add('hidden'));
   const autoResize = (el) => {
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    el.style.height = Math.min(el.scrollHeight, 72) + 'px';
   };
   [bgInput, ...layerIds.map((l) => l.q), ...layerIds.map((l) => l.a)].forEach((el) => {
     el.addEventListener('keydown', (e) => {
