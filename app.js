@@ -254,9 +254,15 @@
     wrap.appendChild(card);
   }
 
-  /* 将 AI 回复中的"结论/漏洞数"渲染为突出卡片，结论按合格程度着色 */
+  /* 将 AI 回复渲染为突出卡片：结论/漏洞数着色，漏洞清单条目高亮，
+     问题词句（AI 用 **加粗** 标注）转换为高亮标记 */
   function formatAI(text) {
-    const lines = esc(String(text)).split('\n').map((line) => {
+    const lines = esc(String(text)).split('\n');
+    let inIssues = false;
+    const mapped = lines.map((raw) => {
+      let line = raw;
+      if (/^(漏洞清单|漏洞列表|漏洞)[：:]/.test(raw)) inIssues = true;
+      else if (/^(逐层点评|逐层审核|修改建议|改进建议|结论|漏洞数)[：:]/.test(raw)) inIssues = false;
       let m = line.match(/^(结论)[：:](.*)$/);
       if (m) {
         const rest = m[2];
@@ -264,21 +270,26 @@
         if (/不合格/.test(rest)) cls = 'err';
         else if (/基本/.test(rest)) cls = 'warn';
         else if (/合格/.test(rest)) cls = 'ok';
-        return `<span class="judge-line conclusion ${cls}"><b class="jl">结论：</b>${rest}</span>`;
+        line = `<span class="judge-line conclusion ${cls}"><b class="jl">结论：</b>${rest}</span>`;
+      } else {
+        m = line.match(/^(漏洞数)[：:](.*)$/);
+        if (m) {
+          const n = parseInt(m[2], 10);
+          const cls = isNaN(n) || n === 0 ? 'ok' : 'warn';
+          line = `<span class="judge-line conclusion ${cls}"><b class="jl">漏洞数：</b>${m[2]}</span>`;
+        }
       }
-      m = line.match(/^(漏洞数)[：:](.*)$/);
-      if (m) {
-        const n = parseInt(m[2], 10);
-        const cls = isNaN(n) || n === 0 ? 'ok' : 'warn';
-        return `<span class="judge-line conclusion ${cls}"><b class="jl">漏洞数：</b>${m[2]}</span>`;
+      if (inIssues && line.indexOf('<span') !== 0 && /^\s*\d+[.、]/.test(line)) {
+        line = `<span class="issue-line">${line}</span>`;
       }
+      line = line.replace(/\*\*(.+?)\*\*/g, '<mark>$1</mark>');
       return line;
     });
     /* 去掉紧邻卡片前后的空行；卡片边界不输出换行符，避免 pre-wrap 额外渲染空行高 */
-    const isCard = (l) => l && l.indexOf('<span class="judge-line') === 0;
-    const kept = lines.filter((line, i) => {
+    const isCard = (l) => l && (l.indexOf('<span class="judge-line') === 0 || l.indexOf('<span class="issue-line') === 0);
+    const kept = mapped.filter((line, i) => {
       if (line.trim() !== '') return true;
-      return !(isCard(lines[i - 1]) || isCard(lines[i + 1]));
+      return !(isCard(mapped[i - 1]) || isCard(mapped[i + 1]));
     });
     return kept.map((line, i) => {
       if (i === 0) return line;
@@ -317,7 +328,14 @@
     chat.innerHTML = '';
     if (!current) return;
     current.messages.forEach(renderMessage);
+    applyInputVisibility();
     scrollToBottom();
+  }
+
+  /* 每条记录只分析一个问题：提交过即隐藏输入区，聊天区占满 */
+  function applyInputVisibility() {
+    const hasSubmission = !!(current && current.messages.some((m) => m.type === 'submission'));
+    document.querySelector('.main').classList.toggle('no-input', hasSubmission);
   }
 
   function scrollToBottom() {

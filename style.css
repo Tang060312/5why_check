@@ -128,6 +128,10 @@ body {
   min-width: 0;
 }
 
+/* 提交后：隐藏输入区，聊天区占满 */
+.main.no-input { grid-template-rows: auto 1fr; }
+.main.no-input .input-bar-wrap { display: none; }
+
 .app-header {
   grid-row: 1;
   background: #fff;
@@ -313,6 +317,27 @@ body {
 .judge-line.conclusion.warn .jl { color: #b45309; }
 .judge-line.conclusion.err { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
 .judge-line.conclusion.err .jl { color: #b91c1c; }
+
+/* 漏洞清单条目：整条高亮 */
+.issue-line {
+  display: block;
+  margin: 4px 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+  line-height: 1.6;
+}
+
+/* AI 用 ** 标注的问题词句：高亮 */
+mark {
+  background: #fde68a;
+  color: #92400e;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 600;
+}
 
 /* ---------- typing / loading ---------- */
 .typing {
