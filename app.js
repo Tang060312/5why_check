@@ -7,11 +7,11 @@
   const listEl = $('#session-list');
   const chainEl = $('#chain-fields');
   const addBtn = $('#btn-add-layer');
-  const MAX_LAYERS = 20;
+  const MAX_LAYERS = 10;
 
   const SESSIONS_KEY = '5why_check_sessions';
   const CONFIG_KEY = '5why_check_ai_config';
-  const GREETING = '你好，我是 5Why 分析审核助手。\n\n请在表单中填写他人的 5Why 分析：第 1 层必填，点击「＋ 添加下一层」可继续扩充（最多 20 层），问题背景可选，问题总结必填。提交后我将逐层审核逻辑链，指出漏洞并给出修改建议。';
+  const GREETING = '你好，我是 5Why 分析审核助手。\n\n请在表单中填写他人的 5Why 分析：第 1 层必填，点击「＋ 添加下一层」可继续扩充（最多 10 层），问题背景可选，问题总结必填。提交后我将逐层审核逻辑链，指出漏洞并给出修改建议。';
   const FALLBACK_PROMPT = '你是一位5Why分析审核专家，请审核用户提交的5Why分析链条是否存在逻辑漏洞，并给出修改建议。';
 
   /* 本地模式：通过本机 server.js 代理调用（读取 server.js 的 AI_CONFIG 与 promt.txt）
