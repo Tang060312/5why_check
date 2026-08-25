@@ -481,7 +481,11 @@
       if (typing.parentNode) typing.remove();
       const errPanel = document.createElement('div');
       errPanel.className = 'error-panel';
-      errPanel.textContent = 'AI 审核失败：' + (e.message || '未知错误') + '，请重试。';
+      const isNetErr = e instanceof TypeError;
+      const hint = IS_PROXY
+        ? '本地服务连接中断（请确认 server.js 仍在运行）。'
+        : '无法访问 AI 服务，可能原因：网络/代理无法连通接口地址、接口不支持浏览器跨域（CORS）。建议改用本地模式（localhost:3001 运行 server.js）。';
+      errPanel.textContent = 'AI 审核失败：' + (isNetErr ? '网络连接失败（' + hint + '）' : e.message || '未知错误') + '，请重试。';
       p.textContent = '';
       bubble.appendChild(errPanel);
       full = '';
