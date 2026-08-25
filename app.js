@@ -5,11 +5,13 @@
   const summaryEl = $('#in-summary');
   const sendBtn = $('#btn-send');
   const listEl = $('#session-list');
-  const layerIds = [1, 2, 3, 4, 5].map((n) => ({ q: $('#in-q' + n), a: $('#in-a' + n) }));
+  const chainEl = $('#chain-fields');
+  const addBtn = $('#btn-add-layer');
+  const MAX_LAYERS = 5;
 
   const SESSIONS_KEY = '5why_check_sessions';
   const CONFIG_KEY = '5why_check_ai_config';
-  const GREETING = '你好，我是 5Why 分析审核助手。\n\n请在表单中填写他人的 5Why 分析（第 1 层必填，最多 5 层，可附问题背景与总结），提交后我将逐层审核逻辑链，指出漏洞并给出修改建议。';
+  const GREETING = '你好，我是 5Why 分析审核助手。\n\n请在表单中填写他人的 5Why 分析：第 1 层必填，点击「＋ 添加下一层」可继续扩充（最多 5 层），问题背景可选，问题总结必填。提交后我将逐层审核逻辑链，指出漏洞并给出修改建议。';
   const FALLBACK_PROMPT = '你是一位5Why分析审核专家，请审核用户提交的5Why分析链条是否存在逻辑漏洞，并给出修改建议。';
 
   /* 本地模式：通过本机 server.js 代理调用（读取 server.js 的 AI_CONFIG 与 promt.txt）
@@ -322,11 +324,88 @@
     chat.scrollTop = chat.scrollHeight;
   }
 
+  /* ---------- 动态层管理 ---------- */
+  function bindInput(el) {
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        onSubmit();
+      }
+    });
+    el.addEventListener('input', () => autoResize(el));
+  }
+
+  function getLayers() {
+    return Array.from(chainEl.querySelectorAll('.layer-row')).map((row) => ({
+      row,
+      q: row.querySelector('.layer-q'),
+      a: row.querySelector('.layer-a'),
+    }));
+  }
+
+  function buildLayerRow(n) {
+    const row = document.createElement('div');
+    row.className = 'layer-row';
+    const tag = document.createElement('div');
+    tag.className = 'layer-tag';
+    tag.textContent = '第 ' + n + ' 层';
+    const qField = document.createElement('div');
+    qField.className = 'qa-field';
+    const qLabel = document.createElement('div');
+    qLabel.className = 'qa-label layer-q-label';
+    qLabel.innerHTML = '为什么？' + (n === 1 ? ' <em>必填</em>' : ' <em>可选</em>');
+    const q = document.createElement('textarea');
+    q.className = 'layer-q';
+    q.rows = 1;
+    q.placeholder = n === 1 ? '第一层提出的为什么问题' : '基于上一层分析继续追问';
+    qField.appendChild(qLabel);
+    qField.appendChild(q);
+    const aField = document.createElement('div');
+    aField.className = 'qa-field';
+    const aLabel = document.createElement('div');
+    aLabel.className = 'qa-label';
+    aLabel.innerHTML = '分析 / 解答' + (n === 1 ? ' <em>必填</em>' : ' <em>可选</em>');
+    const a = document.createElement('textarea');
+    a.className = 'layer-a';
+    a.rows = 1;
+    a.placeholder = n === 1 ? '对这一层问题的解答、原因分析' : '对这一层问题的解答';
+    aField.appendChild(aLabel);
+    aField.appendChild(a);
+    row.appendChild(tag);
+    row.appendChild(qField);
+    row.appendChild(aField);
+    if (n > 1) {
+      const del = document.createElement('button');
+      del.className = 'layer-del';
+      del.textContent = '×';
+      del.title = '删除该层';
+      del.addEventListener('click', () => {
+        row.remove();
+        updateLayerState();
+      });
+      row.appendChild(del);
+    }
+    bindInput(q);
+    bindInput(a);
+    return row;
+  }
+
+  function updateLayerState() {
+    getLayers().forEach(({ row }, i) => {
+      const n = i + 1;
+      row.querySelector('.layer-tag').textContent = '第 ' + n + ' 层';
+      row.querySelector('.layer-q-label').innerHTML = '为什么？' + (n === 1 ? ' <em>必填</em>' : ' <em>可选</em>');
+    });
+    const count = getLayers().length;
+    addBtn.classList.toggle('hidden', count >= MAX_LAYERS);
+  }
+
   function setInputEnabled(enabled) {
     busy = !enabled;
     bgInput.disabled = !enabled;
     summaryEl.disabled = !enabled;
-    layerIds.forEach(({ q, a }) => { q.disabled = !enabled; a.disabled = !enabled; });
+    getLayers().forEach(({ q, a }) => { q.disabled = !enabled; a.disabled = !enabled; });
+    addBtn.disabled = !enabled;
     sendBtn.disabled = !enabled;
     sendBtn.innerHTML = enabled
       ? '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>提交审核'
@@ -402,10 +481,12 @@
   function collectSubmission() {
     const background = bgInput.value.trim();
     const summary = summaryEl.value.trim();
+    if (!summary) return { error: '请填写「问题总结」。' };
     const chain = [];
-    for (let i = 0; i < layerIds.length; i++) {
-      const q = layerIds[i].q.value.trim();
-      const a = layerIds[i].a.value.trim();
+    const layers = getLayers();
+    for (let i = 0; i < layers.length; i++) {
+      const q = layers[i].q.value.trim();
+      const a = layers[i].a.value.trim();
       if (i === 0) {
         if (!q) return { error: '请填写第 1 层的「为什么」。' };
         if (!a) return { error: '请填写第 1 层的「分析 / 解答」。' };
@@ -459,7 +540,10 @@
     current.messages.push(msg);
     bgInput.value = '';
     summaryEl.value = '';
-    layerIds.forEach(({ q, a }) => { q.value = ''; a.value = ''; });
+    getLayers().forEach(({ q, a }) => { q.value = ''; a.value = ''; });
+    chainEl.innerHTML = '';
+    chainEl.appendChild(buildLayerRow(1));
+    updateLayerState();
     renderChat();
     touchSession();
 
@@ -549,14 +633,13 @@
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 96) + 'px';
   };
-  [bgInput, summaryEl, ...layerIds.map((l) => l.q), ...layerIds.map((l) => l.a)].forEach((el) => {
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        onSubmit();
-      }
-    });
-    el.addEventListener('input', () => autoResize(el));
+  [bgInput, summaryEl].forEach(bindInput);
+  addBtn.addEventListener('click', () => {
+    const count = getLayers().length;
+    if (count >= MAX_LAYERS) return;
+    chainEl.appendChild(buildLayerRow(count + 1));
+    updateLayerState();
+    getLayers()[count].q.focus();
   });
   $('#btn-export').addEventListener('click', exportReport);
   $('#btn-clear').addEventListener('click', () => {
@@ -575,6 +658,8 @@
   });
 
   /* ---------- 初始化 ---------- */
+  chainEl.appendChild(buildLayerRow(1));
+  updateLayerState();
   loadSessions();
   if (sessions.length) {
     current = sessions[0];

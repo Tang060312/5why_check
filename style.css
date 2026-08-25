@@ -483,6 +483,45 @@ body {
   border-radius: 10px;
 }
 
+.layer-del {
+  flex-shrink: 0;
+  width: 28px;
+  border: none;
+  background: none;
+  color: #b0b6c6;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 8px;
+  align-self: center;
+}
+
+.layer-del:hover { color: var(--red); background: #fdeeee; }
+
+.layer-add {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.layer-add:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: #eff6ff;
+}
+
+.layer-add:disabled { opacity: 0.5; pointer-events: none; }
+
 .review-actions {
   display: flex;
   justify-content: flex-end;
