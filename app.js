@@ -2,13 +2,14 @@
   const $ = (sel) => document.querySelector(sel);
   const chat = $('#chat');
   const bgInput = $('#in-background');
+  const summaryEl = $('#in-summary');
   const sendBtn = $('#btn-send');
   const listEl = $('#session-list');
   const layerIds = [1, 2, 3, 4, 5].map((n) => ({ q: $('#in-q' + n), a: $('#in-a' + n) }));
 
   const SESSIONS_KEY = '5why_check_sessions';
   const CONFIG_KEY = '5why_check_ai_config';
-  const GREETING = '你好，我是 5Why 分析审核助手。\n\n请在表单中填写他人的 5Why 分析（第 1 层必填，最多 5 层），提交后我将逐层审核逻辑链，指出漏洞并给出修改建议。';
+  const GREETING = '你好，我是 5Why 分析审核助手。\n\n请在表单中填写他人的 5Why 分析（第 1 层必填，最多 5 层，可附问题背景与总结），提交后我将逐层审核逻辑链，指出漏洞并给出修改建议。';
   const FALLBACK_PROMPT = '你是一位5Why分析审核专家，请审核用户提交的5Why分析链条是否存在逻辑漏洞，并给出修改建议。';
 
   /* 本地模式：通过本机 server.js 代理调用（读取 server.js 的 AI_CONFIG 与 promt.txt）
@@ -128,7 +129,7 @@
     if (current.title === '新审核') {
       const first = current.messages.find((m) => m.type === 'submission');
       if (first) {
-        const titleSrc = first.background || (first.chain[0] && first.chain[0].q) || '';
+        const titleSrc = first.background || (first.chain[0] && first.chain[0].q) || first.summary || '';
         current.title = titleSrc.replace(/\s+/g, ' ').slice(0, 20);
         $('#session-title').textContent = current.title;
       }
@@ -233,6 +234,21 @@
       chain.appendChild(row);
     });
     card.appendChild(chain);
+
+    if (m.summary) {
+      const sum = document.createElement('div');
+      sum.className = 'sub-bg';
+      const sumLabel = document.createElement('div');
+      sumLabel.className = 'sub-label';
+      sumLabel.textContent = '问题总结';
+      const sumText = document.createElement('div');
+      sumText.className = 'sub-text';
+      sumText.textContent = m.summary;
+      sum.appendChild(sumLabel);
+      sum.appendChild(sumText);
+      card.appendChild(sum);
+    }
+
     wrap.appendChild(card);
   }
 
@@ -309,6 +325,7 @@
   function setInputEnabled(enabled) {
     busy = !enabled;
     bgInput.disabled = !enabled;
+    summaryEl.disabled = !enabled;
     layerIds.forEach(({ q, a }) => { q.disabled = !enabled; a.disabled = !enabled; });
     sendBtn.disabled = !enabled;
     sendBtn.innerHTML = enabled
@@ -384,6 +401,7 @@
   /* ---------- 表单收集与校验 ---------- */
   function collectSubmission() {
     const background = bgInput.value.trim();
+    const summary = summaryEl.value.trim();
     const chain = [];
     for (let i = 0; i < layerIds.length; i++) {
       const q = layerIds[i].q.value.trim();
@@ -398,14 +416,15 @@
         chain.push({ q, a });
       }
     }
-    return { background, chain };
+    return { background, chain, summary };
   }
 
-  function submissionToText(background, chain) {
+  function submissionToText(background, chain, summary) {
     let text = background ? `【问题背景】\n${background}\n\n` : '';
     chain.forEach((step, i) => {
       text += `【第 ${i + 1} 层】\n问题：${step.q}\n分析：${step.a}\n\n`;
     });
+    if (summary) text += `【总结】\n${summary}\n`;
     return text.trim();
   }
 
@@ -434,10 +453,12 @@
       type: 'submission',
       background: data.background,
       chain: data.chain,
-      content: submissionToText(data.background, data.chain),
+      summary: data.summary || '',
+      content: submissionToText(data.background, data.chain, data.summary),
     };
     current.messages.push(msg);
     bgInput.value = '';
+    summaryEl.value = '';
     layerIds.forEach(({ q, a }) => { q.value = ''; a.value = ''; });
     renderChat();
     touchSession();
@@ -526,9 +547,9 @@
   $('#btn-settings-cancel').addEventListener('click', () => $('#settings-modal').classList.add('hidden'));
   const autoResize = (el) => {
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 72) + 'px';
+    el.style.height = Math.min(el.scrollHeight, 96) + 'px';
   };
-  [bgInput, ...layerIds.map((l) => l.q), ...layerIds.map((l) => l.a)].forEach((el) => {
+  [bgInput, summaryEl, ...layerIds.map((l) => l.q), ...layerIds.map((l) => l.a)].forEach((el) => {
     el.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
