@@ -254,15 +254,17 @@
     wrap.appendChild(card);
   }
 
-  /* 将 AI 回复渲染为突出卡片：结论/漏洞数着色，漏洞清单条目高亮，
-     问题词句（AI 用 **加粗** 标注）转换为高亮标记 */
+  /* 将 AI 回复渲染为突出卡片：结论/评分/漏洞数着色，漏洞清单条目高亮，
+     问题词句（AI 用 **加粗** 标注）转换为高亮标记，逐层点评附（N/10）得分徽章 */
   function formatAI(text) {
     const lines = esc(String(text)).split('\n');
     let inIssues = false;
+    let inLayers = false;
     const mapped = lines.map((raw) => {
       let line = raw;
-      if (/^(漏洞清单|漏洞列表|漏洞)[：:]/.test(raw)) inIssues = true;
-      else if (/^(逐层点评|逐层审核|修改建议|改进建议|结论|漏洞数)[：:]/.test(raw)) inIssues = false;
+      if (/^(漏洞清单|漏洞列表|漏洞)[：:]/.test(raw)) { inIssues = true; inLayers = false; }
+      else if (/^(逐层点评|逐层审核)[：:]/.test(raw)) { inIssues = false; inLayers = true; }
+      else if (/^(修改建议|改进建议|结论|漏洞数|评分|得分)[：:]/.test(raw)) { inIssues = false; inLayers = false; }
       let m = line.match(/^(结论)[：:](.*)$/);
       if (m) {
         const rest = m[2];
@@ -272,12 +274,26 @@
         else if (/合格/.test(rest)) cls = 'ok';
         line = `<span class="judge-line conclusion ${cls}"><b class="jl">结论：</b>${rest}</span>`;
       } else {
-        m = line.match(/^(漏洞数)[：:](.*)$/);
+        m = line.match(/^(评分|得分)[：:]\s*(\d{1,3})/);
         if (m) {
-          const n = parseInt(m[2], 10);
-          const cls = isNaN(n) || n === 0 ? 'ok' : 'warn';
-          line = `<span class="judge-line conclusion ${cls}"><b class="jl">漏洞数：</b>${m[2]}</span>`;
+          const s = Math.min(100, Math.max(0, parseInt(m[2], 10)));
+          const cls = s >= 85 ? 'ok' : (s >= 60 ? 'warn' : 'err');
+          line = `<span class="score-card ${cls}"><span class="score-num">${s}</span><span class="score-label">分</span><span class="score-bar"><i style="width:${s}%"></i></span></span>`;
+        } else {
+          m = line.match(/^(漏洞数)[：:](.*)$/);
+          if (m) {
+            const n = parseInt(m[2], 10);
+            const cls = isNaN(n) || n === 0 ? 'ok' : 'warn';
+            line = `<span class="judge-line conclusion ${cls}"><b class="jl">漏洞数：</b>${m[2]}</span>`;
+          }
         }
+      }
+      if (inLayers) {
+        line = line.replace(/（\s*(\d{1,2})\s*\/\s*10\s*）/g, (_mm, n) => {
+          const v = parseInt(n, 10);
+          const cls = v >= 8 ? 'ok' : (v >= 6 ? 'warn' : 'err');
+          return `<span class="layer-score ${cls}">${v}/10</span>`;
+        });
       }
       if (inIssues && line.indexOf('<span') !== 0 && /^\s*\d+[.、]/.test(line)) {
         line = `<span class="issue-line">${line}</span>`;
@@ -286,7 +302,7 @@
       return line;
     });
     /* 去掉紧邻卡片前后的空行；卡片边界不输出换行符，避免 pre-wrap 额外渲染空行高 */
-    const isCard = (l) => l && (l.indexOf('<span class="judge-line') === 0 || l.indexOf('<span class="issue-line') === 0);
+    const isCard = (l) => l && (l.indexOf('<span class="judge-line') === 0 || l.indexOf('<span class="issue-line') === 0 || l.indexOf('<span class="score-card') === 0);
     const kept = mapped.filter((line, i) => {
       if (line.trim() !== '') return true;
       return !(isCard(mapped[i - 1]) || isCard(mapped[i + 1]));

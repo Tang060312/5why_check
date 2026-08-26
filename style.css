@@ -330,6 +330,62 @@ body {
   line-height: 1.6;
 }
 
+/* 评分卡片 */
+.score-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: #f8fafc;
+}
+
+.score-card.ok { background: #ecfdf5; border-color: #6ee7b7; }
+.score-card.warn { background: #fffbeb; border-color: #fcd34d; }
+.score-card.err { background: #fef2f2; border-color: #fca5a5; }
+
+.score-num {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.score-card.ok .score-num { color: #047857; }
+.score-card.warn .score-num { color: #b45309; }
+.score-card.err .score-num { color: #b91c1c; }
+
+.score-label { font-size: 12px; color: var(--muted); }
+
+.score-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.score-bar i { display: block; height: 100%; border-radius: 999px; transition: width 0.5s ease; }
+.score-card.ok .score-bar i { background: #10b981; }
+.score-card.warn .score-bar i { background: #f59e0b; }
+.score-card.err .score-bar i { background: #ef4444; }
+
+/* 逐层点评的得分徽章 */
+.layer-score {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+.layer-score.ok { background: #dcfce7; color: #15803d; }
+.layer-score.warn { background: #fef3c7; color: #b45309; }
+.layer-score.err { background: #fee2e2; color: #b91c1c; }
+
 /* AI 用 ** 标注的问题词句：高亮 */
 mark {
   background: #fde68a;
