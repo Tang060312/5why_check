@@ -22,6 +22,7 @@ const AI_CONFIG = {
   apiKey: 'sk-946a73929a0840bb9b0c878117c25dc5',         // ← 你的 API Key
   model: 'deepseek-v4-flash',                            // ← 模型名称
   temperature: 0.3,                                      // ← 采样温度
+  thinking: 'low',                                       // ← 思考模式：high / low / disabled
 };
 
 /* =====================================================================
@@ -63,6 +64,7 @@ async function callAIStream(apiMessages, onChunk) {
     body: JSON.stringify({
       model: AI_CONFIG.model,
       temperature: AI_CONFIG.temperature,
+      thinking: AI_CONFIG.thinking,
       stream: true,
       messages: apiMessages,
     }),
