@@ -22,7 +22,9 @@ const AI_CONFIG = {
   apiKey: 'sk-946a73929a0840bb9b0c878117c25dc5',         // ← 你的 API Key
   model: 'deepseek-v4-flash',                            // ← 模型名称
   temperature: 0.3,                                      // ← 采样温度
-  thinking: 'low',                                       // ← 思考模式：high / low / disabled
+  // 思考模式：{ type: 'disabled' } 关闭推理（省 token、最快）；需要推理时可改为
+  // { type: 'enabled', budget_tokens: 1024 }（注意：API 只接受对象格式，字符串 'low' 会报 400）
+  thinking: { type: 'disabled' },
 };
 
 /* =====================================================================

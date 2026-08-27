@@ -468,7 +468,7 @@
         body: JSON.stringify({
           model: cfg.model,
           temperature: 0.3,
-          thinking: 'low',
+          thinking: { type: 'disabled' },
           stream: true,
           messages: [{ role: 'system', content: prompt }, ...messages.slice(-30)],
         }),
