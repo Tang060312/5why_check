@@ -469,8 +469,9 @@
           model: cfg.model,
           temperature: 0.3,
           thinking: { type: 'disabled' },
+          max_tokens: 350,
           stream: true,
-          messages: [{ role: 'system', content: prompt }, ...messages.slice(-30)],
+          messages: [{ role: 'system', content: prompt }, ...messages.filter((m) => m.role === 'user' || m.type).slice(-6)],
         }),
       });
     }

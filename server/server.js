@@ -67,6 +67,7 @@ async function callAIStream(apiMessages, onChunk) {
       model: AI_CONFIG.model,
       temperature: AI_CONFIG.temperature,
       thinking: AI_CONFIG.thinking,
+      max_tokens: 350, // 输出硬上限，防止跑题/超长
       stream: true,
       messages: apiMessages,
     }),
@@ -134,7 +135,8 @@ app.post('/api/5why/review', async (req, res) => {
 
   const apiMessages = [
     { role: 'system', content: getSystemPrompt() },
-    ...messages.slice(-30), // 最多携带最近 30 条，避免超长
+    // 只保留用户提交内容（去掉问候语与历史 AI 回复），最多 6 条，省 token
+    ...messages.filter((m) => m.role === 'user' || m.type).slice(-6),
   ];
 
   try {
