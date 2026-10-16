@@ -42,7 +42,7 @@ npm start
 
 > 注意：这套队列只在**本地/内网模式**（跑 `server.js`）下有效。GitHub Pages 静态部署没有服务端，浏览器是直连 AI 的，无法跨使用者排队；那种模式下每个使用者用各自的 Key，浏览器侧只能保证自己不发并发请求，并对限流做退避重试。
 
-### 换 AI 供应商 / 换模型 / 切成"使用者零配置"
+### 换 AI 供应商 / 换模型
 
 **改 `providers.json` 即可，不需要动任何代码**——这个文件就是设置弹窗里那个「服务提供方」下拉框的内容来源。改完 push，GitHub Pages 会自动生效（使用者按 Ctrl+F5 强制刷新）。
 
@@ -52,20 +52,21 @@ npm start
   "providers": [
     { "id": "zhipu", "name": "智谱 GLM（有完全免费的档位）",
       "endpoint": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-      "model": "glm-4.7-flash", "needKey": true, "thinking": "disabled" },
-    { "id": "gateway", "name": "内部网关（使用者无需填 Key）",
-      "endpoint": "http://192.168.1.100:3001/api/5why/review",
-      "needKey": false, "mode": "gateway" }
+      "model": "glm-4.7-flash", "needKey": true, "thinking": "disabled",
+      "hint": "glm-4.7-flash 免费；注意不要选带 X 的 flashx，那个收费。" },
+    { "id": "custom", "name": "自定义（自己填地址和模型）",
+      "endpoint": "", "model": "", "needKey": true, "thinking": "auto" }
   ]
 }
 ```
 
 - 每个供应商可配 `endpoint` / `model` / `needKey` / `thinking` / `mode` / `hint`
-- `"needKey": false` + `"mode": "gateway"` = 走内网网关，**使用者什么都不用填，且享受全局排队**。⚠️ 但若网页本身是 https（GitHub Pages），浏览器会拦截对 http 网关的请求（混合内容），这种情况请让使用者**直接打开网关地址**使用——前端会自动识别（启动时探测 `gateway.json` 标记）并切到网关模式，无需任何配置
-- `"thinking"` 支持 `disabled`（发并关闭推理）/ `omit`（不发）/ `auto`（先试，接口不认就自动去掉重试一次）
+- `"thinking"` 支持 `disabled`（发并关闭推理）/ `omit`（不发）/ `auto`（先试，接口不认该参数就自动去掉重试一次）
 - 读不到这个文件时前端会用内置兜底预设，不影响使用
 
-> 想做成"使用者零配置 + 自动排队"的形态，见 **[部署指南-内网网关.md](部署指南-内网网关.md)**（含一键启动脚本 `启动网关.cmd`）。
+**内部网关不需要在这里配置**：当使用者直接用浏览器打开网关机器提供的网址（`http://网关IP:3001`）时，页面由网关自己发出，前端会自动探测到 `gateway.json` 标记并切到网关模式（同源、免 Key、享排队）。
+
+> ⚠️ 反过来不成立：如果网页是从 https 站点（GitHub Pages）打开的，浏览器会以**「混合内容」**拦截对 http 网关的请求。因此代码里会**自动把这类用不了的网关供应商从下拉框里隐藏**，并在万一被选中时给出明确提示。要做"使用者零配置 + 自动排队"的形态，见 **[部署指南-内网网关.md](部署指南-内网网关.md)**（含一键启动脚本 `启动网关.cmd`）。
 
 ## 方式二：GitHub Pages 部署（供他人使用）
 
@@ -102,7 +103,7 @@ npm start
 ├── style.css
 ├── app.js                   # 自动识别本地/部署模式；含浏览器侧串行队列与排队状态显示
 ├── promt.txt                # AI 审核提示词（修改后部署即生效）
-├── providers.json           # ★ 供应商预设：换 AI 供应商 / 换模型 / 切内网网关都在这里改，不用动代码
+├── providers.json           # ★ 供应商预设：换 AI 供应商 / 换模型在这里改，不用动代码
 ├── 启动网关.cmd             # 内网网关一键启动（首次运行引导填 Key、自动装依赖）
 ├── 部署指南-内网网关.md      # 把工具部署成「使用者零配置 + 自动排队」的完整步骤
 ├── server/                  # 本地模式：Node 代理服务（这份代码同时就是内网网关）

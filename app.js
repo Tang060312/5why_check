@@ -83,12 +83,32 @@
     return providers.find((p) => p.id === id) || null;
   }
 
+  /* 当前页面是 https 时，浏览器会以「混合内容」为由拦截对 http 网关的请求。
+     这种供应商列在下拉框里只会让人踩坑，所以直接不列出、也不选它。
+     （真正走内网的场景是：使用者直接用网关地址打开本工具，
+       那时前端会探测到 gateway.json 标记，自动切到同源的网关模式。） */
+  function isUnusableHere(p) {
+    return !!(p && p.mode === 'gateway'
+      && /^http:\/\//i.test(String(p.endpoint || ''))
+      && location.protocol === 'https:');
+  }
+
+  function usableProviders() {
+    return providers.filter((p) => !isUnusableHere(p));
+  }
+
   /* 这次调用到底走哪条路：
      - localhost 打开 → 一律走本机 server.js 网关（排队最完整）
      - 选了 mode=gateway 的供应商 → 走它给的网关地址，使用者不需要 Key
      - 其余 → 浏览器直连供应商接口 */
   function resolveCall(cfg) {
-    const p = findProvider(cfg.providerId) || findProvider(providerDefaultId) || providers[0] || {};
+    const pick = (id) => {
+      const x = findProvider(id);
+      return x && !isUnusableHere(x) ? x : null;
+    };
+    /* 存过的供应商在当前页面用不了（例如之前选过 http 网关、现在在 https 页面上），
+       就自动退回到一个可用的，避免使用者卡在"提交必失败"的状态里。 */
+    const p = pick(cfg.providerId) || pick(providerDefaultId) || usableProviders()[0] || providers[0] || {};
     /* 页面由网关自己提供，或跑在 localhost —— 都走网关（相对地址、同源） */
     if (IS_PROXY || gatewayInfo) {
       return { mode: 'gateway', endpoint: (gatewayInfo && gatewayInfo.endpoint) || '/api/5why/review', needKey: false, thinking: 'omit', provider: p };
@@ -128,15 +148,16 @@
   function renderProviderOptions(selectedId) {
     const sel = $('#set-provider');
     if (!sel) return;
+    const list = usableProviders();
     sel.innerHTML = '';
-    providers.forEach((p) => {
+    list.forEach((p) => {
       const o = document.createElement('option');
       o.value = p.id;
       o.textContent = p.name || p.id;
       if (p.id === selectedId) o.selected = true;
       sel.appendChild(o);
     });
-    if (!sel.value && providers.length) sel.value = providers[0].id;
+    if (!sel.value && list.length) sel.value = list[0].id;
   }
 
   /* 选中供应商后把地址/模型自动填进表单；走网关时隐藏 Key 输入框 */
@@ -685,6 +706,9 @@
 
     /* 走网关：不需要 Key，网关负责排队、重试、持有 Key */
     if (call.mode === 'gateway') {
+      if (/^http:\/\//i.test(call.endpoint || '') && location.protocol === 'https:') {
+        throw new Error('当前页面是 https，浏览器不允许它请求 http 网关（混合内容拦截）。请改用网关自己的地址打开本工具（形如 http://网关IP:3001），或在上方改选其他供应商。');
+      }
       if (!call.endpoint) throw new Error('尚未配置网关地址，请点击右上角「设置」填写。');
       const res = await fetch(call.endpoint, gatewayRequest(messages));
       if (!res.ok) throw await throwHttpError(res);

@@ -10,6 +10,7 @@
     "mode": "direct=浏览器直连这个接口；gateway=走本工具的网关（server.js），此时会排队、且不需要 Key",
     "hint": "选中该供应商时在设置弹窗里显示的一行提示"
   },
+  "_关于内部网关": "本文件里不需要配置内部网关。当使用者直接用浏览器打开网关机器提供的网址（http://网关IP:3001）时，页面由网关自己发出，前端会自动探测到 gateway.json 标记并切到网关模式（同源、免 Key、享排队），无需任何配置。反之，如果网页是从 https 站点（如 GitHub Pages）打开的，浏览器会以「混合内容」拦截对 http 网关的请求——这种情况无法通过配置解决，只能改用网关地址访问。",
   "version": 1,
   "default": "zhipu",
   "providers": [
@@ -30,16 +31,6 @@
       "needKey": true,
       "thinking": "disabled",
       "hint": "Key 在 platform.deepseek.com 获取，按量计费。"
-    },
-    {
-      "id": "gateway",
-      "name": "内部网关（使用者无需填 Key）",
-      "endpoint": "http://192.168.1.100:3001/api/5why/review",
-      "model": "由网关决定",
-      "needKey": false,
-      "thinking": "omit",
-      "mode": "gateway",
-      "hint": "把上面的地址改成网关机器的实际地址（IP:端口）。⚠️ 如果这个网页是从 https 网站（如 GitHub Pages）打开的，浏览器会以「混合内容」为由拦截对 http 网关的请求——那种情况下请让使用者直接打开网关地址（http://网关IP:3001）使用，前端会自动识别并切到网关模式，不需要在这里配置。"
     },
     {
       "id": "custom",
