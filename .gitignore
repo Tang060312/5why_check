@@ -3,3 +3,10 @@ server/node_modules/
 data/
 *.log
 .DS_Store
+
+# 网关机器上的本地配置（含 API Key），绝不要提交
+server/.local-config.cmd
+server/.env
+.env
+
+test/reports/

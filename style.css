@@ -505,6 +505,45 @@ mark {
 
 .hidden { display: none !important; }
 
+/* ---------- AI 排队 / 限流重试状态条（2026-10-16） ---------- */
+.queue-status {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475569;
+  background: #f1f5f9;
+  border-left: 3px solid #94a3b8;
+  border-radius: 6px;
+}
+
+.queue-status.warn {
+  color: #92400e;
+  background: #fffbeb;
+  border-left-color: #f59e0b;
+}
+
+/* ---------- 全局轻量提示条（备份/恢复等操作的反馈，2026-10-16） ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: 70vw;
+  padding: 10px 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #fff;
+  background: #334155;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.25);
+}
+
+.toast.success { background: #15803d; }
+
+.toast.warn { background: #b45309; }
+
 .qa-field {
   flex: 1;
   min-width: 0;
@@ -675,16 +714,22 @@ mark {
   margin-bottom: 12px;
 }
 
-.settings-field input {
+.settings-field input,
+.settings-field select {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 12px;
   font-family: inherit;
   font-size: 13px;
   outline: none;
+  background: #fff;
+  color: var(--text);
 }
 
-.settings-field input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+.settings-field select { cursor: pointer; }
+
+.settings-field input:focus,
+.settings-field select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
 
 @media (max-width: 720px) {
   .sidebar { display: none; }
