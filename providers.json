@@ -1,13 +1,13 @@
 {
-  "_说明": "改这个文件就能换 AI 供应商 / 换模型 / 切到内部网关，不需要改任何代码。改完 push，GitHub Pages 会自动生效（浏览器可能有缓存，按 Ctrl+F5 强制刷新）。",
+  "_说明": "改这个文件就能换 AI 供应商 / 换模型，不需要改任何代码。改完 push，GitHub Pages 会自动生效（浏览器可能有缓存，按 Ctrl+F5 强制刷新）。",
   "_字段": {
     "id": "唯一标识，不要重复",
     "name": "设置弹窗里下拉框显示的名字",
-    "endpoint": "接口地址；mode=gateway 时填网关地址（如 http://192.168.1.100:3001/api/5why/review）",
-    "model": "模型名（mode=gateway 时会被网关忽略，随便填）",
-    "needKey": "使用者是否需要自己填 API Key；走内部网关时填 false，使用者就什么都不用配",
+    "endpoint": "接口地址（OpenAI 兼容的 /chat/completions 地址）",
+    "model": "模型名",
+    "needKey": "使用者是否需要自己填 API Key；填 false 会隐藏 Key 输入框（一般配合 mode=gateway 使用）",
     "thinking": "是否发送 thinking 参数：disabled=发送并关闭推理（智谱/DeepSeek 用这个）；omit=不发送；auto=先试，接口不认就自动去掉（见 app.js 的方案 4B）",
-    "mode": "direct=浏览器直连这个接口；gateway=走本工具的网关（server.js），此时会排队、且不需要 Key",
+    "mode": "默认 direct=浏览器直连该接口。高级用法 gateway=走本工具的网关（server.js）；但内网场景通常不需要在这里配置，请看下面「_关于内部网关」",
     "hint": "选中该供应商时在设置弹窗里显示的一行提示"
   },
   "_关于内部网关": "本文件里不需要配置内部网关。当使用者直接用浏览器打开网关机器提供的网址（http://网关IP:3001）时，页面由网关自己发出，前端会自动探测到 gateway.json 标记并切到网关模式（同源、免 Key、享排队），无需任何配置。反之，如果网页是从 https 站点（如 GitHub Pages）打开的，浏览器会以「混合内容」拦截对 http 网关的请求——这种情况无法通过配置解决，只能改用网关地址访问。",
